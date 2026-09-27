@@ -1,0 +1,479 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Task Manager</title>
+
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+            background: #f4f6f8;
+            color: #222;
+        }
+
+        .container {
+            width: 90%;
+            max-width: 700px;
+            margin: 50px auto;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .header h1 {
+            margin-bottom: 8px;
+            font-size: 36px;
+        }
+
+        .header p {
+            color: #666;
+            margin: 0;
+        }
+
+        .add-box {
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 3px 12px rgba(0, 0, 0, 0.08);
+            display: flex;
+            gap: 10px;
+            margin-bottom: 25px;
+        }
+
+        .add-box input {
+            flex: 1;
+            padding: 13px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-size: 15px;
+            outline: none;
+        }
+
+        .add-box input:focus {
+            border-color: #555;
+        }
+
+        .add-box button {
+            padding: 13px 20px;
+            border: none;
+            border-radius: 8px;
+            background: #222;
+            color: white;
+            cursor: pointer;
+            font-size: 15px;
+        }
+
+        .add-box button:hover {
+            background: #444;
+        }
+
+        .tasks-box {
+            background: white;
+            padding: 25px;
+            border-radius: 12px;
+            box-shadow: 0 3px 12px rgba(0, 0, 0, 0.08);
+        }
+
+        .tasks-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .tasks-header h2 {
+            margin: 0;
+        }
+
+        #taskCount {
+            color: #777;
+            font-size: 14px;
+        }
+
+        ul {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        li {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 14px;
+            border-bottom: 1px solid #eee;
+        }
+
+        li:last-child {
+            border-bottom: none;
+        }
+
+        .task-title {
+            flex: 1;
+            font-size: 16px;
+        }
+
+        .completed .task-title {
+            text-decoration: line-through;
+            color: #999;
+        }
+
+        .check-box {
+            width: 18px;
+            height: 18px;
+            cursor: pointer;
+        }
+
+        .action-button {
+            border: none;
+            padding: 7px 10px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 13px;
+        }
+
+        .edit-button {
+            background: #eee;
+            color: #222;
+        }
+
+        .delete-button {
+            background: #eee;
+            color: #b00020;
+        }
+
+        .action-button:hover {
+            opacity: 0.75;
+        }
+
+        .empty-message {
+            text-align: center;
+            color: #888;
+            padding: 30px 10px;
+        }
+
+        @media (max-width: 600px) {
+
+            .container {
+                width: 94%;
+                margin: 25px auto;
+            }
+
+            .add-box {
+                flex-direction: column;
+            }
+
+            .add-box button {
+                width: 100%;
+            }
+
+            li {
+                flex-wrap: wrap;
+            }
+        }
+    </style>
+</head>
+
+
+<body>
+
+    <div class="container">
+
+        <div class="header">
+            <h1>Task Manager</h1>
+            <p>Organize your tasks and keep track of your progress.</p>
+        </div>
+
+
+        <div class="add-box">
+
+            <input
+                type="text"
+                id="taskInput"
+                placeholder="What do you need to do?"
+                onkeydown="handleEnter(event)"
+            >
+
+            <button onclick="addTask()">
+                Add Task
+            </button>
+
+        </div>
+
+
+        <div class="tasks-box">
+
+            <div class="tasks-header">
+
+                <h2>My Tasks</h2>
+
+                <span id="taskCount">
+                    0 tasks
+                </span>
+
+            </div>
+
+            <ul id="taskList"></ul>
+
+        </div>
+
+    </div>
+
+
+    <script>
+
+        async function loadTasks() {
+
+            const response = await fetch("/tasks");
+
+            const tasks = await response.json();
+
+            const taskList = document.getElementById("taskList");
+
+            const taskCount = document.getElementById("taskCount");
+
+            taskList.innerHTML = "";
+
+            taskCount.textContent =
+                tasks.length + (tasks.length === 1 ? " task" : " tasks");
+
+
+            if (tasks.length === 0) {
+
+                taskList.innerHTML =
+                    '<div class="empty-message">No tasks yet. Add your first task!</div>';
+
+                return;
+            }
+
+
+            tasks.forEach(function(task) {
+
+                const li = document.createElement("li");
+
+                if (task.completed === 1) {
+                    li.classList.add("completed");
+                }
+
+
+                const checkbox = document.createElement("input");
+
+                checkbox.type = "checkbox";
+
+                checkbox.className = "check-box";
+
+                checkbox.checked = task.completed === 1;
+
+
+                checkbox.onchange = function() {
+
+                    updateTask(
+                        task.id,
+                        task.title,
+                        checkbox.checked
+                    );
+
+                };
+
+
+                const title = document.createElement("span");
+
+                title.className = "task-title";
+
+                title.textContent = task.title;
+
+
+                const editButton = document.createElement("button");
+
+                editButton.textContent = "Edit";
+
+                editButton.className =
+                    "action-button edit-button";
+
+
+                editButton.onclick = function() {
+
+                    editTask(
+                        task.id,
+                        task.title,
+                        task.completed
+                    );
+
+                };
+
+
+                const deleteButton = document.createElement("button");
+
+                deleteButton.textContent = "Delete";
+
+                deleteButton.className =
+                    "action-button delete-button";
+
+
+                deleteButton.onclick = function() {
+
+                    deleteTask(task.id);
+
+                };
+
+
+                li.appendChild(checkbox);
+
+                li.appendChild(title);
+
+                li.appendChild(editButton);
+
+                li.appendChild(deleteButton);
+
+                taskList.appendChild(li);
+
+            });
+
+        }
+
+
+        async function addTask() {
+
+            const input =
+                document.getElementById("taskInput");
+
+            const title = input.value.trim();
+
+
+            if (!title) {
+
+                alert("Please enter a task.");
+
+                return;
+            }
+
+
+            await fetch("/tasks", {
+
+                method: "POST",
+
+                headers: {
+                    "Content-Type": "application/json"
+                },
+
+                body: JSON.stringify({
+                    title: title
+                })
+
+            });
+
+
+            input.value = "";
+
+            loadTasks();
+
+        }
+
+
+        function handleEnter(event) {
+
+            if (event.key === "Enter") {
+
+                addTask();
+
+            }
+
+        }
+
+
+        async function deleteTask(id) {
+
+            const confirmDelete =
+                confirm("Are you sure you want to delete this task?");
+
+
+            if (!confirmDelete) {
+                return;
+            }
+
+
+            await fetch("/tasks/" + id, {
+
+                method: "DELETE"
+
+            });
+
+
+            loadTasks();
+
+        }
+
+
+        async function updateTask(id, title, completed) {
+
+            await fetch("/tasks/" + id, {
+
+                method: "PUT",
+
+                headers: {
+                    "Content-Type": "application/json"
+                },
+
+                body: JSON.stringify({
+
+                    title: title,
+
+                    completed: completed ? 1 : 0
+
+                })
+
+            });
+
+
+            loadTasks();
+
+        }
+
+
+        async function editTask(id, oldTitle, completed) {
+
+            const newTitle =
+                prompt("Edit your task:", oldTitle);
+
+
+            if (!newTitle || !newTitle.trim()) {
+                return;
+            }
+
+
+            await fetch("/tasks/" + id, {
+
+                method: "PUT",
+
+                headers: {
+                    "Content-Type": "application/json"
+                },
+
+                body: JSON.stringify({
+
+                    title: newTitle.trim(),
+
+                    completed: completed
+
+                })
+
+            });
+
+
+            loadTasks();
+
+        }
+
+
+        loadTasks();
+
+    </script>
+
+</body>
+</html>
